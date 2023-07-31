@@ -21,6 +21,8 @@ from self_hosting_machinery.webgui.tab_settings import TabSettingsRouter
 from self_hosting_machinery.webgui.tab_upload import TabUploadRouter
 from self_hosting_machinery.webgui.tab_finetune import TabFinetuneRouter
 from self_hosting_machinery.webgui.tab_models_host import TabHostRouter
+from self_hosting_machinery.webgui.tab_vecdb import TabVecDBRouter
+
 from self_hosting_machinery.webgui.selfhost_queue import InferenceQueue
 from self_hosting_machinery.webgui.selfhost_static import StaticRouter
 
@@ -59,7 +61,9 @@ if __name__ == "__main__":
         datefmt='%Y%m%d %H:%M:%S',
         handlers=[logging.StreamHandler(stream=sys.stderr)])
 
-    app = FastAPI(docs_url=None, redoc_url=None)
+    app = FastAPI(
+        # docs_url=None, redoc_url=None
+    )
 
     app.include_router(PluginsRouter())
     app.include_router(CompletionsRouter(prefix="/v1", id2ticket=id2ticket, inference_queue=inference_queue))
@@ -68,9 +72,10 @@ if __name__ == "__main__":
     app.include_router(TabUploadRouter())
     app.include_router(TabFinetuneRouter())
     app.include_router(TabHostRouter())
+    app.include_router(TabVecDBRouter())
+
     app.include_router(TabSettingsRouter())
     app.include_router(StaticRouter())
-
 
     app.add_middleware(
         CORSMiddleware,

@@ -1,13 +1,13 @@
 import json
 from fastapi import APIRouter, Request
 
-
 plugins = [
-{ "label": "Model Hosting", "tab": "model-hosting", "active": True },
-{ "label": "Sources", "tab": "upload" },
-{ "label": "Finetune", "tab": "finetune" },
-{ "label": "Server Logs", "tab": "server-logs" },
-{ "label": "Credentials", "tab": "settings", "hamburger": True },
+    {"label": "Model Hosting", "tab": "model-hosting", "active": True},
+    {"label": "Sources", "tab": "upload"},
+    {"label": "Finetune", "tab": "finetune"},
+    {"label": "VecDB", "id": "vecdb-tab", "tab": "vecdb", "hidden": True},
+    {"label": "Server Logs", "tab": "server-logs"},
+    {"label": "Credentials", "tab": "settings", "hamburger": True},
 ]
 
 
