@@ -18,6 +18,7 @@ from typing import Dict, Optional
 __all__ = ["TabUploadRouter"]
 
 
+
 async def download_file_from_url(url: str):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -73,8 +74,7 @@ class TabUploadRouter(APIRouter):
         self.add_api_route("/tab-files-filetypes-setup", self._tab_files_filetypes_setup, methods=["POST"])
         self.add_api_route("/tab-files-log", self._tab_files_log, methods=["GET"])
 
-    @staticmethod
-    async def _tab_files_get():
+    async def _tab_files_get(self):
         result = {
             "uploaded_files": {}
         }
@@ -137,16 +137,14 @@ class TabUploadRouter(APIRouter):
         # 2 gpu filtering done
         return Response(json.dumps(result, indent=4) + "\n")
 
-    @staticmethod
-    async def _tab_files_save_config(config: TabFilesConfig):
+    async def _tab_files_save_config(self, config: TabFilesConfig):
         with open(env.CONFIG_HOW_TO_UNZIP + ".tmp", "w") as f:
             json.dump(config.dict(), f, indent=4)
         os.rename(env.CONFIG_HOW_TO_UNZIP + ".tmp", env.CONFIG_HOW_TO_UNZIP)
         # _reset_process_stats()  -- this requires process script restart, but it flashes too much in GUI
         return JSONResponse("OK")
 
-    @staticmethod
-    async def _tab_files_upload(file: UploadFile):
+    async def _tab_files_upload(self, file: UploadFile):
         tmp_path = os.path.join(env.DIR_UPLOADS, file.filename + ".tmp")
         file_path = os.path.join(env.DIR_UPLOADS, file.filename)
         if os.path.exists(file_path):
@@ -169,23 +167,21 @@ class TabUploadRouter(APIRouter):
         _reset_process_stats()
         return JSONResponse("OK")
 
-    @staticmethod
-    async def _upload_file_from_url(post: UploadViaURL):
+    async def _upload_file_from_url(self, post: UploadViaURL):
         log("downloading \"%s\"" % post.url)
-        file_bin_cont = await download_file_from_url(post.url)
+        bin = await download_file_from_url(post.url)
         log("/download")
         last_path_element = os.path.split(post.url)[1]
         file_path = os.path.join(env.DIR_UPLOADS, last_path_element)
         try:
             with open(file_path, "wb") as f:
-                f.write(file_bin_cont)
+                f.write(bin)
         except OSError as e:
             return JSONResponse({"message": f"Error: {e}"}, status_code=500)
         _reset_process_stats()
         return JSONResponse("OK")
 
-    @staticmethod
-    def _make_git_command():
+    def _make_git_command(self):
         command = ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no']
         for ssh_key in env.get_all_ssh_keys():
             command += ['-i', ssh_key]
@@ -195,16 +191,14 @@ class TabUploadRouter(APIRouter):
         class IncorrectUrl(Exception):
             def __init__(self):
                 super().__init__()
-
-        def cleanup_url(url: str) -> str:
+        def cleanup_url(url: str):
             for sym in ["\t", " "]:
-                splitted = list(filter(lambda x: len(x) > 0, url.split(sym)))
-                if len(splitted) > 1:
+                splited = list(filter(lambda x: len(x) > 0, url.split(sym)))
+                if len(splited) > 1:
                     raise IncorrectUrl()
-                url = splitted[0]
+                url = splited[0]
             return url
-
-        def check_url(url: str) -> str:
+        def check_url(url: str):
             from giturlparse import parse
             if not parse(url).valid:
                 raise IncorrectUrl()
@@ -222,7 +216,6 @@ class TabUploadRouter(APIRouter):
                 raise Exception("Badly formatted url {}".format(url))
 
             return url[last_slash_index + 1:last_suffix_index]
-        repo_name = None
         try:
             url = cleanup_url(repo.url)
             url = check_url(url)
@@ -243,55 +236,52 @@ class TabUploadRouter(APIRouter):
         _reset_process_stats()
         return JSONResponse("OK")
 
-    @staticmethod
-    async def _tab_files_delete(request: Request, delete_entry: TabFilesDeleteEntry):
+    async def _tab_files_delete(self, request: Request, delete_entry: TabFilesDeleteEntry):
         file_path = os.path.join(env.DIR_UPLOADS, delete_entry.delete_this)
         try:
             os.unlink(file_path)
-        except OSError:
+        except OSError as e:
             pass
         try:
             shutil.rmtree(file_path)
-        except OSError:
+        except OSError as e:
             pass
         _reset_process_stats()
         try:
             if not os.listdir(env.DIR_UPLOADS) and os.path.exists(env.CONFIG_HOW_TO_FILETYPES):
                 os.remove(env.CONFIG_HOW_TO_FILETYPES)
-        except Exception:
+        except Exception as e:
             pass
         return JSONResponse("OK")
 
-    @staticmethod
-    async def _tab_files_log(phase: str, accepted_or_rejected: str):
+    async def _tab_files_log(self, phase: str, accepted_or_rejected: str):
+        fn = ""
         if phase == "finetune_filter":
             if accepted_or_rejected == "accepted":
-                file_name = env.LOG_FILES_ACCEPTED_FTF
+                fn = env.LOG_FILES_ACCEPTED_FTF
             else:
-                file_name = env.LOG_FILES_REJECTED_FTF
+                fn = env.LOG_FILES_REJECTED_FTF
         else:
             if accepted_or_rejected == "accepted":
-                file_name = env.LOG_FILES_ACCEPTED_SCAN
+                fn = env.LOG_FILES_ACCEPTED_SCAN
             else:
-                file_name = env.LOG_FILES_REJECTED_SCAN
-        if os.path.isfile(file_name):
+                fn = env.LOG_FILES_REJECTED_SCAN
+        if os.path.isfile(fn):
             return StreamingResponse(
-                stream_text_file(file_name),
+                stream_text_file(fn),
                 media_type="text/plain"
             )
         else:
             return Response("File list empty\n", media_type="text/plain")
 
-    @staticmethod
-    async def _tab_files_filetypes_setup(post: FileTypesSetup):
+    async def _tab_files_filetypes_setup(self, post: FileTypesSetup):
         with open(env.CONFIG_HOW_TO_FILETYPES + ".tmp", "w") as f:
             json.dump(post.dict(), f, indent=4)
         os.rename(env.CONFIG_HOW_TO_FILETYPES + ".tmp", env.CONFIG_HOW_TO_FILETYPES)
         _start_process_now(dont_delete_stats=True)
         return JSONResponse("OK")
 
-    @staticmethod
-    async def _upload_files_process_now():
+    async def _upload_files_process_now(self):
         _start_process_now()
         return JSONResponse("OK")
 
@@ -306,7 +296,7 @@ def _start_process_now(dont_delete_stats=False):
 def _reset_process_stats():
     try:
         os.remove(env.CONFIG_PROCESSING_STATS)
-    except OSError:
+    except OSError as e:
         pass
 
 
