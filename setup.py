@@ -33,7 +33,9 @@ all_refact_packages = {
         requires=["termcolor", "torch"],
         requires_packages=["refact_encoding", "code_contrast", "refact_scratchpads_no_gpu"]),
     "refact_scratchpads_no_gpu": PyPackage(
-        requires=["termcolor", "aiohttp", "tiktoken", "openai", "ujson"]),
+        requires=["termcolor", "aiohttp", "tiktoken", "openai", "ujson"],
+        requires_packages=["refact_vecdb"]
+    ),
     "refact_data_pipeline": PyPackage(
         requires=["numpy", "tokenizers", "torch", "requests", "cloudpickle",
                   "tqdm", "dataclasses_json", "termcolor", 'more_itertools',
@@ -51,6 +53,9 @@ all_refact_packages = {
         requires_packages=["refact_scratchpads", "refact_scratchpads_no_gpu", "refact_models",
                            "known_models_db", "refact_data_pipeline"],
         data=["webgui/static/*", "webgui/static/js/*", "watchdog/watchdog.d/*"]),
+    "refact_vecdb": PyPackage(
+        requires=["aiohttp", "requests", "ujson", "more-itertools"]
+    )
 }
 
 
